@@ -54,7 +54,7 @@ from .dicts import (
     OrderedSetVariable,
     SetVariable,
 )
-from .distributed import BackwardHookVariable, DistributedVariable, PlacementVariable
+from .distributed import BackwardHookVariable, DistributedVariable
 from .functions import (
     BuiltinMethodVariable,
     CollectionsNamedTupleFunction,
@@ -205,7 +205,6 @@ __all__ = [
     "NumpyNdarrayVariable",
     "NumpyVariable",
     "OptimizerVariable",
-    "PlacementVariable",
     "PolyfilledFunctionVariable",
     "PythonModuleVariable",
     "RangeVariable",
