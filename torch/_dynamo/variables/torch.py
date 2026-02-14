@@ -2723,8 +2723,8 @@ For now, dynamo will explicitly graph break when it encounters user code with th
         kwargs: dict[str, VariableTracker],
     ) -> VariableTracker:
         import torch.utils._pytree as pytree
-        from torch._higher_order_ops.flat_apply import func_to_graphable
         from torch._higher_order_ops.invoke_leaf_function import (
+            _LeafCallable,
             invoke_leaf_function,
             reconstruct_original_args,
         )
@@ -2776,16 +2776,16 @@ For now, dynamo will explicitly graph break when it encounters user code with th
         wrapped_real_impl = wrap_impl_for_leaf_module_state(real_impl)
         wrapped_fake_impl = wrap_impl_for_leaf_module_state(fake_impl)
 
-        _, real_impl_spec = func_to_graphable(wrapped_real_impl)
-        _, fake_impl_spec = func_to_graphable(wrapped_fake_impl)
+        real_impl_callable = _LeafCallable(wrapped_real_impl)
+        fake_impl_callable = _LeafCallable(wrapped_fake_impl)
 
-        def make_spec_proxy(name: str, spec: Any) -> Any:
+        def make_callable_proxy(name: str, spec: Any) -> Any:
             proxy = tx.output.register_static_attr_and_return_proxy(name, spec)
             proxy.node.type = type(spec)
             return proxy
 
-        real_impl_proxy = make_spec_proxy("real_fn", real_impl_spec)
-        fake_impl_proxy = make_spec_proxy("fake_fn", fake_impl_spec)
+        real_impl_proxy = make_callable_proxy("real_fn", real_impl_callable)
+        fake_impl_proxy = make_callable_proxy("fake_fn", fake_impl_callable)
 
         invoke_args = (
             real_impl_proxy,
