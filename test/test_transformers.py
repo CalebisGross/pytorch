@@ -1113,7 +1113,7 @@ class TestTransformers(NNTestCase):
                 )[0]
 
     @tf32_on_and_off(0.003)
-    @parametrize("batch_size", [0, 5])
+    @parametrize("batch_size", [1, 5])
     @parametrize("input_dim,attn_mask_dim,is_causal",
                  [(3, None, False), (3, 2, False), (3, 2, True), (3, 3, False), (3, 3, True),
                   (4, None, False), (4, 2, False), (4, 2, True), (4, 4, False), (4, 4, True)],
@@ -2115,6 +2115,27 @@ class TestSDPA(NNTestCase):
         x = torch.full((1, 32, 23, 80), 256.0, dtype=torch.half, device=device)
         y = torch.nn.functional.scaled_dot_product_attention(x, x, x)
         self.assertFalse(y.isnan().any().item())
+
+    @parametrize("dtype", [torch.float32, torch.float16, torch.bfloat16])
+    def test_sdpa_zero_sized_tensors(self, device, dtype):
+        zero_size_configs = [
+            (0, 4, 10, 64),
+            (2, 4, 0, 64),
+            (2, 4, 10, 0),
+            (0, 0, 0, 0),
+        ]
+        for b, h, s, d in zero_size_configs:
+            q = torch.zeros(b, h, s, d, dtype=dtype, device=device, requires_grad=True)
+            k = torch.zeros(b, h, s, d, dtype=dtype, device=device, requires_grad=True)
+            v = torch.zeros(b, h, s, 32, dtype=dtype, device=device, requires_grad=True)
+            out = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+            self.assertEqual(out.shape, (b, h, s, 32))
+            self.assertEqual(out, torch.zeros(b, h, s, 32, dtype=dtype, device=device))
+            out.sum().backward()
+            self.assertEqual(q.grad.shape, q.shape)
+            self.assertEqual(k.grad.shape, k.shape)
+            self.assertEqual(v.grad.shape, v.shape)
+
 
 class TestSDPACpuOnly(NNTestCase):
     """ Used to test CPU only functionality of scaled_dot_product_attention """
