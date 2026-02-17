@@ -2067,7 +2067,7 @@ def runOnRocm(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if TEST_WITH_ROCM:
-            fn(*args, **kwargs)
+            return fn(*args, **kwargs)
         else:
             raise unittest.SkipTest("test currently only works on the ROCm stack")
     return wrapper
@@ -2115,7 +2115,7 @@ def skipIfMPS(fn):
         if TEST_MPS:
             raise unittest.SkipTest("test doesn't currently work with MPS")
         else:
-            fn(*args, **kwargs)
+            return fn(*args, **kwargs)
     return wrapper
 
 
@@ -2125,7 +2125,7 @@ def skipIfHpu(fn):
         if TEST_HPU:
             raise unittest.SkipTest("test doesn't currently work with HPU")
         else:
-            fn(*args, **kwargs)
+            return fn(*args, **kwargs)
     return wrapper
 
 def getRocmVersion() -> tuple[int, int]:
