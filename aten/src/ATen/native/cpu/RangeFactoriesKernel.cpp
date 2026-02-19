@@ -59,6 +59,15 @@ void linspace_kernel(TensorIterator& iter, const Scalar& scalar_start, const Sca
       cpu_serial_kernel(
           it,
           [start, end, step, halfway, steps, &idx]() -> scalar_t {
+            // Explicitly return endpoints to avoid inf*0=NaN
+            if (idx == 0) {
+              idx++;
+              return start;
+            }
+            if (idx == steps - 1) {
+              idx++;
+              return end;
+            }
             if (idx < halfway) {
               return start + step * (idx++);
             } else {

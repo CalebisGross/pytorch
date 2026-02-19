@@ -42,7 +42,7 @@ from torch.testing._internal.common_device_type import (
     onlyCUDA, skipCPUIf, dtypesIfCUDA, dtypesIfCPU, skipMeta)
 from torch.testing._internal.common_dtype import (
     all_types_and_complex, all_types_and_complex_and, all_types_and, floating_and_complex_types, complex_types,
-    floating_types, floating_and_complex_types_and, integral_types, integral_types_and, get_all_dtypes,
+    floating_types, floating_types_and, floating_and_complex_types_and, integral_types, integral_types_and, get_all_dtypes,
     float_to_corresponding_complex_type_map, all_types_complex_float8_and
 )
 
@@ -3093,6 +3093,31 @@ class TestTensorCreation(TestCase):
         x = torch.zeros(2, 3, device=device, dtype=dtype)
         y = torch.linspace(0, 3, 4, out=x.narrow(1, 1, 2), dtype=dtype)
         self.assertEqual(x, torch.tensor(((0, 0, 1), (0, 2, 3)), device=device, dtype=dtype), atol=0, rtol=0)
+
+    @dtypes(*floating_types_and(torch.half, torch.bfloat16))
+    def test_linspace_inf_endpoint(self, device, dtype):
+        # Regression test: linspace with inf endpoints should return the
+        # endpoints exactly rather than NaN (see issue #165537).
+        inf = float('inf')
+
+        # Basic case: start=0, end=inf
+        result = torch.linspace(0, inf, 3, device=device, dtype=dtype)
+        self.assertEqual(result[0].item(), 0.0)
+        self.assertEqual(result[-1].item(), inf)
+
+        # start=-inf, end=0
+        result = torch.linspace(-inf, 0, 3, device=device, dtype=dtype)
+        self.assertEqual(result[0].item(), -inf)
+        self.assertEqual(result[-1].item(), 0.0)
+
+        # Both endpoints infinite
+        result = torch.linspace(-inf, inf, 5, device=device, dtype=dtype)
+        self.assertEqual(result[0].item(), -inf)
+        self.assertEqual(result[-1].item(), inf)
+
+        # Single step returns start
+        result = torch.linspace(0, inf, 1, device=device, dtype=dtype)
+        self.assertEqual(result[0].item(), 0.0)
 
     def _test_linspace_logspace_deduction_helper(self, fn, device):
         for start, end in [(1, 2), (1., 2), (1., -2.), (1j, 2j), (0., 2j), (1j, 2)]:
